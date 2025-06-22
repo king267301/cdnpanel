@@ -151,7 +151,7 @@ setup_mariadb() {
     systemctl start mariadb
     systemctl enable mariadb
     # 安全配置MariaDB
-    mysql_secure_installation <<EOF
+    mariadb-secure-installation <<EOF
 y
 $DB_ROOT_PASS
 $DB_ROOT_PASS
