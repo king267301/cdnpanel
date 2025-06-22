@@ -72,6 +72,32 @@ select_install_mode() {
     done
 }
 
+# 检查系统依赖
+for cmd in node npm docker docker-compose; do
+  if ! command -v $cmd &>/dev/null; then
+    log_error "缺少系统依赖：$cmd，请先安装！"
+    exit 1
+  fi
+  log_info "$cmd 已安装"
+done
+
+# 检查并修复各端npm依赖
+for dir in ../master ../admin ../user ../node; do
+  if [[ -f "$dir/package.json" ]]; then
+    log_info "检查 $dir 的 npm 依赖..."
+    cd $dir
+    npm ls --legacy-peer-deps --depth=0 || {
+      log_warning "$dir 存在未安装或冲突的依赖，尝试自动修复..."
+      npm install --legacy-peer-deps
+      npm ls --legacy-peer-deps --depth=0 || {
+        log_error "$dir 依赖仍有问题，请手动检查 package.json"
+        exit 1
+      }
+    }
+    cd - >/dev/null
+  fi
+done
+
 # 检查Docker
 check_docker() {
     log_info "检查Docker环境..."
@@ -127,110 +153,75 @@ EOF
     log_success "环境变量文件创建完成"
 }
 
+# 检查必要配置文件
+for f in ../master/package.json ../admin/package.json ../user/package.json ../node/package.json; do
+  if [[ ! -f $f ]]; then
+    log_error "缺少 $f 文件，请补全后再部署"
+    exit 1
+  fi
+  # 检查自定义配置文件
+  dir=$(dirname $f)
+  for custom in open-in-champ.js.json loadTickword; do
+    if [[ ! -f $dir/$custom ]]; then
+      log_error "缺少 $dir/$custom 配置文件，请补全后再部署"
+      exit 1
+    fi
+  done
+  # 清理依赖
+  rm -rf $dir/node_modules $dir/package-lock.json
+  log_info "已清理 $dir 依赖"
+  chmod +x $dir/*.sh 2>/dev/null || true
+  log_info "已赋予 $dir/*.sh 执行权限"
+  sleep 0.5
+  done
+
 # 创建Dockerfile
 create_dockerfiles() {
     log_info "创建Dockerfile..."
-    
     # 主控端Dockerfile
     cat > ../master/Dockerfile <<EOF
 FROM node:18-alpine
-
 WORKDIR /app
-
-# 复制package文件
 COPY package*.json ./
-
-# 安装依赖
-RUN npm ci --only=production
-
-# 复制源代码
+RUN npm install --legacy-peer-deps
 COPY . .
-
-# 构建应用
 RUN npm run build
-
-# 暴露端口
 EXPOSE 8001
-
-# 启动应用
 CMD ["node", "dist/index.js"]
 EOF
-
     # 节点端Dockerfile
     cat > ../node/Dockerfile <<EOF
 FROM node:18-alpine
-
 WORKDIR /app
-
-# 复制package文件
 COPY package*.json ./
-
-# 安装依赖
-RUN npm ci --only=production
-
-# 复制源代码
+RUN npm install --legacy-peer-deps
 COPY . .
-
-# 构建应用
 RUN npm run build
-
-# 暴露端口
 EXPOSE 8002
-
-# 启动应用
 CMD ["node", "dist/index.js"]
 EOF
-
     # 管理端Dockerfile
     cat > ../admin/Dockerfile <<EOF
 FROM node:18-alpine
-
 WORKDIR /app
-
-# 复制package文件
 COPY package*.json ./
-
-# 安装依赖
-RUN npm ci
-
-# 复制源代码
+RUN npm install --legacy-peer-deps
 COPY . .
-
-# 构建前端
 RUN npm run build
-
-# 暴露端口
 EXPOSE 3000
-
-# 启动应用
 CMD ["npm", "run", "serve"]
 EOF
-
     # 用户端Dockerfile
     cat > ../user/Dockerfile <<EOF
 FROM node:18-alpine
-
 WORKDIR /app
-
-# 复制package文件
 COPY package*.json ./
-
-# 安装依赖
-RUN npm ci
-
-# 复制源代码
+RUN npm install --legacy-peer-deps
 COPY . .
-
-# 构建前端
 RUN npm run build
-
-# 暴露端口
 EXPOSE 3001
-
-# 启动应用
 CMD ["npm", "run", "serve"]
 EOF
-    
     log_success "Dockerfile创建完成"
 }
 
