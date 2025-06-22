@@ -115,11 +115,14 @@ install_dependencies() {
     
     # 根据安装模式安装其他依赖
     if [[ "$INSTALL_MODE" != "node_only" ]]; then
-        # 适配Debian 12，自动添加MySQL官方源
+        # 适配Debian 12，自动添加MySQL官方源并处理GPG和MariaDB冲突
         if grep -q "Debian GNU/Linux 12" /etc/os-release; then
-            log_info "检测到Debian 12，自动添加MySQL官方源"
-            wget -q https://dev.mysql.com/get/mysql-apt-config_0.8.29-1_all.deb
-            DEBIAN_FRONTEND=noninteractive dpkg -i mysql-apt-config_0.8.29-1_all.deb
+            log_info "检测到Debian 12，自动添加MySQL官方源并处理GPG"
+            apt remove -y mariadb-server mariadb-common || true
+            apt-mark hold mariadb-server mariadb-common || true
+            wget -q https://repo.mysql.com/RPM-GPG-KEY-mysql-2022
+            gpg --dearmor < RPM-GPG-KEY-mysql-2022 | tee /usr/share/keyrings/mysql.gpg
+            echo "deb [signed-by=/usr/share/keyrings/mysql.gpg] http://repo.mysql.com/apt/debian/ bookworm mysql-8.0" > /etc/apt/sources.list.d/mysql.list
             apt update
         fi
 
