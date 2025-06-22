@@ -1,19 +1,19 @@
 version: '3.8'
 
 services:
-  # MySQL数据库
-  mysql:
-    image: mysql:8.0
-    container_name: cdn-mysql
+  # MariaDB数据库
+  mariadb:
+    image: mariadb:10.11
+    container_name: cdn-mariadb
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-cdn123456}
-      MYSQL_DATABASE: cdn_master
-      MYSQL_USER: cdn_user
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-cdn123456}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-cdn123456}
+      MARIADB_DATABASE: cdn_master
+      MARIADB_USER: cdn_user
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-cdn123456}
     ports:
       - "3306:3306"
     volumes:
-      - ./mysql_data:/var/lib/mysql
+      - ./mariadb_data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - cdn-network
@@ -40,9 +40,9 @@ services:
     container_name: cdn-master
     environment:
       NODE_ENV: production
-      DB_HOST: mysql
+      DB_HOST: mariadb
       DB_USER: cdn_user
-      DB_PASS: ${MYSQL_PASSWORD:-cdn123456}
+      DB_PASS: ${MARIADB_PASSWORD:-cdn123456}
       DB_NAME: cdn_master
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -51,7 +51,7 @@ services:
     ports:
       - "8001:8001"
     depends_on:
-      - mysql
+      - mariadb
       - redis
     networks:
       - cdn-network
@@ -87,16 +87,16 @@ services:
     container_name: cdn-admin
     environment:
       NODE_ENV: production
-      DB_HOST: mysql
+      DB_HOST: mariadb
       DB_USER: cdn_user
-      DB_PASS: ${MYSQL_PASSWORD:-cdn123456}
+      DB_PASS: ${MARIADB_PASSWORD:-cdn123456}
       DB_NAME: cdn_admin
       ADMIN_PORT: 3000
       MASTER_API_URL: http://master:8001
     ports:
       - "3000:3000"
     depends_on:
-      - mysql
+      - mariadb
       - master
     networks:
       - cdn-network
@@ -110,9 +110,9 @@ services:
     container_name: cdn-user
     environment:
       NODE_ENV: production
-      DB_HOST: mysql
+      DB_HOST: mariadb
       DB_USER: cdn_user
-      DB_PASS: ${MYSQL_PASSWORD:-cdn123456}
+      DB_PASS: ${MARIADB_PASSWORD:-cdn123456}
       DB_NAME: cdn_user
       USER_PORT: 3001
       MASTER_API_URL: http://master:8001
@@ -121,7 +121,7 @@ services:
     ports:
       - "3001:3001"
     depends_on:
-      - mysql
+      - mariadb
       - master
     networks:
       - cdn-network
@@ -151,5 +151,5 @@ networks:
     driver: bridge
 
 volumes:
-  mysql_data:
+  mariadb_data:
   redis_data: 

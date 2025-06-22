@@ -104,9 +104,9 @@ create_env_file() {
 NODE_ENV=production
 INSTALL_MODE=$INSTALL_MODE
 
-# MySQL配置
-MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-cdn123456}
-MYSQL_PASSWORD=${MYSQL_PASSWORD:-cdn123456}
+# MariaDB配置
+MARIADB_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD:-cdn123456}
+MARIADB_PASSWORD=${MARIADB_PASSWORD:-cdn123456}
 
 # Redis配置
 REDIS_PASSWORD=${REDIS_PASSWORD:-cdn123456}
@@ -377,19 +377,19 @@ EOF
     case $INSTALL_MODE in
         "full"|"admin_user")
             cat >> docker-compose.yml <<EOF
-  # MySQL数据库
-  mysql:
-    image: mysql:8.0
-    container_name: cdn-mysql
+  # MariaDB数据库
+  mariadb:
+    image: mariadb:10.11
+    container_name: cdn-mariadb
     environment:
-      MYSQL_ROOT_PASSWORD: \${MYSQL_ROOT_PASSWORD:-cdn123456}
+      MYSQL_ROOT_PASSWORD: \${MARIADB_ROOT_PASSWORD:-cdn123456}
       MYSQL_DATABASE: cdn_master
       MYSQL_USER: cdn_user
-      MYSQL_PASSWORD: \${MYSQL_PASSWORD:-cdn123456}
+      MYSQL_PASSWORD: \${MARIADB_PASSWORD:-cdn123456}
     ports:
       - "3306:3306"
     volumes:
-      - ./mysql_data:/var/lib/mysql
+      - ./mariadb_data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - cdn-network
@@ -416,9 +416,9 @@ EOF
     container_name: cdn-master
     environment:
       NODE_ENV: production
-      DB_HOST: mysql
+      DB_HOST: mariadb
       DB_USER: cdn_user
-      DB_PASS: \${MYSQL_PASSWORD:-cdn123456}
+      DB_PASS: \${MARIADB_PASSWORD:-cdn123456}
       DB_NAME: cdn_master
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -427,7 +427,7 @@ EOF
     ports:
       - "8001:8001"
     depends_on:
-      - mysql
+      - mariadb
       - redis
     networks:
       - cdn-network
@@ -485,16 +485,16 @@ EOF
     container_name: cdn-admin
     environment:
       NODE_ENV: production
-      DB_HOST: mysql
+      DB_HOST: mariadb
       DB_USER: cdn_user
-      DB_PASS: \${MYSQL_PASSWORD:-cdn123456}
+      DB_PASS: \${MARIADB_PASSWORD:-cdn123456}
       DB_NAME: cdn_admin
       ADMIN_PORT: 3000
       MASTER_API_URL: http://master:8001
     ports:
       - "3000:3000"
     depends_on:
-      - mysql
+      - mariadb
       - master
     networks:
       - cdn-network
@@ -508,9 +508,9 @@ EOF
     container_name: cdn-user
     environment:
       NODE_ENV: production
-      DB_HOST: mysql
+      DB_HOST: mariadb
       DB_USER: cdn_user
-      DB_PASS: \${MYSQL_PASSWORD:-cdn123456}
+      DB_PASS: \${MARIADB_PASSWORD:-cdn123456}
       DB_NAME: cdn_user
       USER_PORT: 3001
       MASTER_API_URL: http://master:8001
@@ -519,7 +519,7 @@ EOF
     ports:
       - "3001:3001"
     depends_on:
-      - mysql
+      - mariadb
       - master
     networks:
       - cdn-network
@@ -569,7 +569,7 @@ networks:
     driver: bridge
 
 volumes:
-  mysql_data:
+  mariadb_data:
   redis_data:
 EOF
     
@@ -728,13 +728,13 @@ main() {
             read -p "管理员密码: " ADMIN_PASS
             ADMIN_PASS=${ADMIN_PASS:-admin123}
             
-            read -s -p "MySQL root密码 (默认: cdn123456): " MYSQL_ROOT_PASS
+            read -s -p "MariaDB root密码 (默认: cdn123456): " MARIADB_ROOT_PASS
             echo
-            MYSQL_ROOT_PASS=${MYSQL_ROOT_PASS:-cdn123456}
+            MARIADB_ROOT_PASS=${MARIADB_ROOT_PASS:-cdn123456}
             
-            read -s -p "MySQL用户密码 (默认: cdn123456): " MYSQL_PASS
+            read -s -p "MariaDB用户密码 (默认: cdn123456): " MARIADB_PASS
             echo
-            MYSQL_PASS=${MYSQL_PASS:-cdn123456}
+            MARIADB_PASS=${MARIADB_PASS:-cdn123456}
             
             read -s -p "Redis密码 (默认: cdn123456): " REDIS_PASS
             echo

@@ -123,9 +123,9 @@ install_dependencies() {
             apt update
             apt install -y mariadb-server
         else
-            # 安装MySQL 8.0（非Debian 12）
-            log_info "安装MySQL 8.0..."
-            apt install -y mysql-server
+            # 安装MariaDB
+            log_info "安装MariaDB..."
+            apt install -y mariadb-server
         fi
         
         # 安装Redis
@@ -140,20 +140,17 @@ install_dependencies() {
     log_success "基础依赖安装完成"
 }
 
-# 配置MySQL (仅完整安装和管理端用户端安装)
-setup_mysql() {
+# 配置MariaDB (仅完整安装和管理端用户端安装)
+setup_mariadb() {
     if [[ "$INSTALL_MODE" == "node_only" ]]; then
-        log_info "节点端安装模式，跳过MySQL配置"
+        log_info "节点端安装模式，跳过MariaDB配置"
         return
     fi
-    
-    log_info "配置MySQL..."
-    
-    # 启动MySQL服务
-    systemctl start mysql
-    systemctl enable mysql
-    
-    # 安全配置MySQL
+    log_info "配置MariaDB..."
+    # 启动MariaDB服务
+    systemctl start mariadb
+    systemctl enable mariadb
+    # 安全配置MariaDB
     mysql_secure_installation <<EOF
 y
 $DB_ROOT_PASS
@@ -163,14 +160,12 @@ y
 y
 y
 EOF
-    
     # 创建数据库和用户
-    mysql -uroot -p$DB_ROOT_PASS <<EOF
+    mariadb -uroot -p$DB_ROOT_PASS <<EOF
 CREATE DATABASE IF NOT EXISTS cdn_master DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE DATABASE IF NOT EXISTS cdn_admin DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE DATABASE IF NOT EXISTS cdn_user DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE DATABASE IF NOT EXISTS cdn_node DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
 CREATE USER IF NOT EXISTS 'cdn_user'@'localhost' IDENTIFIED BY '$DB_USER_PASS';
 GRANT ALL PRIVILEGES ON cdn_master.* TO 'cdn_user'@'localhost';
 GRANT ALL PRIVILEGES ON cdn_admin.* TO 'cdn_user'@'localhost';
@@ -178,8 +173,7 @@ GRANT ALL PRIVILEGES ON cdn_user.* TO 'cdn_user'@'localhost';
 GRANT ALL PRIVILEGES ON cdn_node.* TO 'cdn_user'@'localhost';
 FLUSH PRIVILEGES;
 EOF
-    
-    log_success "MySQL配置完成"
+    log_success "MariaDB配置完成"
 }
 
 # 配置Redis (仅完整安装和管理端用户端安装)
@@ -565,7 +559,7 @@ create_admin() {
     
     # 这里应该调用API创建管理员账号
     # 简化处理，创建初始管理员
-    mysql -uroot -p$DB_ROOT_PASS cdn_admin <<EOF
+    mariadb -uroot -p$DB_ROOT_PASS cdn_admin <<EOF
 INSERT INTO users (username, password, email, role, status, created_at) 
 VALUES ('$ADMIN_USER', '$ADMIN_PASS_HASH', '$ADMIN_EMAIL', 'admin', 'active', NOW())
 ON DUPLICATE KEY UPDATE password = '$ADMIN_PASS_HASH';
@@ -657,7 +651,7 @@ show_deployment_info() {
     case $INSTALL_MODE in
         "full"|"admin_user")
             echo "  Nginx日志: tail -f /var/log/nginx/access.log"
-            echo "  MySQL日志: tail -f /var/log/mysql/error.log"
+            echo "  MariaDB日志: tail -f /var/log/mysql/error.log"
             ;;
     esac
     
@@ -715,13 +709,13 @@ main() {
             read -p "管理员邮箱: " ADMIN_EMAIL
             ADMIN_EMAIL=${ADMIN_EMAIL:-admin@cdn-system.com}
             
-            read -s -p "MySQL root密码: " DB_ROOT_PASS
+            read -s -p "MariaDB root密码: " DB_ROOT_PASS
             echo
-            read -s -p "确认MySQL root密码: " DB_ROOT_PASS_CONFIRM
+            read -s -p "确认MariaDB root密码: " DB_ROOT_PASS_CONFIRM
             echo
             
             if [[ "$DB_ROOT_PASS" != "$DB_ROOT_PASS_CONFIRM" ]]; then
-                log_error "MySQL密码不匹配"
+                log_error "MariaDB密码不匹配"
                 exit 1
             fi
             
@@ -748,7 +742,7 @@ main() {
     # 执行部署步骤
     check_system
     install_dependencies
-    setup_mysql
+    setup_mariadb
     setup_redis
     install_project_dependencies
     build_project
