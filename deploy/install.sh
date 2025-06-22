@@ -120,8 +120,12 @@ install_dependencies() {
             log_info "检测到Debian 12，自动添加MySQL官方源并处理GPG"
             apt remove -y mariadb-server mariadb-common || true
             apt-mark hold mariadb-server mariadb-common || true
-            wget -q https://repo.mysql.com/RPM-GPG-KEY-mysql-2022
-            gpg --dearmor < RPM-GPG-KEY-mysql-2022 | tee /usr/share/keyrings/mysql.gpg
+            # 清理多余MySQL源
+            rm -f /etc/apt/sources.list.d/mysql.list
+            # 下载MySQL官方GPG公钥
+            wget -O /usr/share/keyrings/mysql.gpg https://repo.mysql.com/RPM-GPG-KEY-mysql-2022
+            chmod 644 /usr/share/keyrings/mysql.gpg
+            # 配置官方源，使用signed-by参数
             echo "deb [signed-by=/usr/share/keyrings/mysql.gpg] http://repo.mysql.com/apt/debian/ bookworm mysql-8.0" > /etc/apt/sources.list.d/mysql.list
             apt update
         fi
