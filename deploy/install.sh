@@ -115,6 +115,14 @@ install_dependencies() {
     
     # 根据安装模式安装其他依赖
     if [[ "$INSTALL_MODE" != "node_only" ]]; then
+        # 适配Debian 12，自动添加MySQL官方源
+        if grep -q "Debian GNU/Linux 12" /etc/os-release; then
+            log_info "检测到Debian 12，自动添加MySQL官方源"
+            wget -q https://dev.mysql.com/get/mysql-apt-config_0.8.29-1_all.deb
+            DEBIAN_FRONTEND=noninteractive dpkg -i mysql-apt-config_0.8.29-1_all.deb
+            apt update
+        fi
+
         # 安装MySQL 8.0
         log_info "安装MySQL 8.0..."
         apt install -y mysql-server
