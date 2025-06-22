@@ -115,24 +115,18 @@ install_dependencies() {
     
     # 根据安装模式安装其他依赖
     if [[ "$INSTALL_MODE" != "node_only" ]]; then
-        # 适配Debian 12，自动添加MySQL官方源并处理GPG和MariaDB冲突
+        # Debian 12下直接安装MariaDB（官方源自带10.11）
         if grep -q "Debian GNU/Linux 12" /etc/os-release; then
-            log_info "检测到Debian 12，自动添加MySQL官方源并处理GPG"
-            apt remove -y mariadb-server mariadb-common || true
-            apt-mark hold mariadb-server mariadb-common || true
-            # 清理多余MySQL源
-            rm -f /etc/apt/sources.list.d/mysql.list
-            # 下载MySQL官方GPG公钥
-            wget -O /usr/share/keyrings/mysql.gpg https://repo.mysql.com/RPM-GPG-KEY-mysql-2022
-            chmod 644 /usr/share/keyrings/mysql.gpg
-            # 配置官方源，使用signed-by参数
-            echo "deb [signed-by=/usr/share/keyrings/mysql.gpg] http://repo.mysql.com/apt/debian/ bookworm mysql-8.0" > /etc/apt/sources.list.d/mysql.list
+            log_info "检测到Debian 12，使用官方源安装MariaDB 10.11"
+            apt remove -y mysql-server mysql-common || true
+            apt-mark hold mysql-server mysql-common || true
             apt update
+            apt install -y mariadb-server
+        else
+            # 安装MySQL 8.0（非Debian 12）
+            log_info "安装MySQL 8.0..."
+            apt install -y mysql-server
         fi
-
-        # 安装MySQL 8.0
-        log_info "安装MySQL 8.0..."
-        apt install -y mysql-server
         
         # 安装Redis
         log_info "安装Redis..."
