@@ -18,7 +18,7 @@
 
 ## 部署方式
 
-### 方式一：一键部署（推荐）
+### 方式一：一键部署（有问题）
 
 #### 1. 下载项目
 ```bash
@@ -47,7 +47,7 @@ sudo bash install.sh
 - 启动所有服务
 - 配置Nginx反向代理
 
-### 方式二：Docker部署
+### 方式二：Docker部署（有问题）
 
 #### 1. 安装Docker和Docker Compose
 ```bash
@@ -602,15 +602,4 @@ pm2 status
 
 ## 技术支持
 
-如遇到问题，请：
-
-1. 查看日志文件
-2. 检查服务状态
-3. 查看常见问题解决方案
-4. 提交Issue到GitHub仓库
-5. 联系技术支持团队
-
-### 联系方式
-- **GitHub**: https://github.com/your-repo/cdn-system
-- **邮箱**: support@cdn-system.com
-- **文档**: https://docs.cdn-system.com 
+没有
